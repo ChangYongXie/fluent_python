@@ -1,0 +1,99 @@
+一切的一切都埋藏在Python数据模型中。可以把Python视为一个框架，而数据模型就是对框架的描述
+Python解释器调用特殊方法来执行基本对象操作。例如，obj[key]调用特殊方法__getitem__
+
+import collections 
+ 
+Card = collections.namedtuple('Card', ['rank', 'suit']) 
+class FrenchDeck: 
+    ranks = [str(n) for n in range(2, 11)] + list('JQKA') 
+    suits = 'spades diamonds clubs hearts'.split() 
+ 
+    def __init__(self): 
+        self._cards = [Card(rank, suit) for suit in self.suits 
+                                        for rank in self.ranks] 
+ 
+    def __len__(self): 
+        return len(self._cards) 
+ 
+    def __getitem__(self, position): 
+        return self._cards[position]
+
+
+random.choice()，从序列中随机获取一项
+reversed()反转序列
+特殊方法__getitem__支持索引，迭代和in运算符
+
+迭代往往是隐式的。如果一个容器没有实现 __contains__ 方法，那么 in 运算符就会做一次顺序扫描。
+
+顺序扫描：从第一个元素开始逐个比较，直到找到或遍历完所有元素。
+                体现了Python的“鸭子类型”哲学，只要对象支持迭代，就能使用in运算符
+                顺序扫描是给没有__contains__，但支持迭代的自定义类使用的。
+                迭代支持 可以通过__iter__或__getitem__实现，如果都没有，会报错
+
+首先要明确一点，特殊方法供 Python 解释器调用，而不是你自己。也
+就是说，没有 my_object.__len__() 这种写法，正确的写法是
+len(my_object)。如果 my_object 是用户定义的类的实例，Python
+将调用你实现的 __len__ 方法
+
+特殊方法__add__供运算符"+"调用
+特殊方法__mul__供运算符"*"调用
+特殊方法__abs__供内置函数"abs()"调用
+特殊方法__repr__供内置函数"repr()"调用，获取对象的字符串表示形式
+
+默认情况下，用户定义类的实例都是真值，除非实现了 __bool__ 或
+__len__ 方法。简单来说，bool(x) 调用 x.__bool__()，以后者
+返回的结果为准。如果没有实现 __bool__ 方法，则 Python 尝试调用
+x.__len__()；如果该方法返回零值，则 bool 函数返回 False，否
+则返回 True
+
+Python数据结构接口概览：
+箭头指向谁表示继承谁
+
+                    *Iterable       *Sized         *Container
+                      __iter__        __len__       __contains__
+                 ↗       ↖              ↑                ↗           
+               /               \           丨             /
+             /                   \         丨           /
+*Reversible                   \        |          /
+__reversed__                   [*Collection]
+                                ↗                      ↖
+        ↑                     /              ↑              \ 
+                          ↗                                   ↖
+*Sequence                      *Mapping                 *Set   
+__getitem__                     __getitem__               isdisjoint
+__contains__                    __contains__              __le__
+__iter__                            __eq__                       __lt__
+__reversed__                    __ne__                       __gt__
+index                              get                            __ge__
+count                             items                         __eq__
+                                      keys                           __ne__
+    ↑                                 values                        __and__
+                                                                        __or__
+*MutableSquence                                             __sub__
+__setitem__                                                        __xor__
+__delitem__
+insert
+append
+reverse
+extend
+pop
+remove
+__iadd__	
+	
+顶部 3 个抽象基类均只有一个特殊方法。抽象基类 Collection
+（Python 3.6 新增）统一了这 3 个基本接口，每一个容器类型均应实
+现如下事项：
+Iterable 要支持 for、拆包和其他迭代方式；
+Sized 要支持内置函数 len；
+Container 要支持 in 运算符。
+
+Python 不强制要求具体类继承这些抽象基类中的任何一个。只要实现了
+__len__ 方法，就说明那个类满足 Sized 接口。
+
+Collection 有 3 个十分重要的专用接口：
+Sequence 规范 list 和 str 等内置类型的接口；
+Mapping 被 dict、collections.defaultdict 等实现；
+Set 是 set 和 frozenset 两个内置类型的接口。
+
+只有 Sequence 实现了 Reversible，因为序列要支持以任意顺序排
+列内容，而 Mapping 和 Set 不需要。
