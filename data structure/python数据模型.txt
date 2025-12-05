@@ -49,28 +49,28 @@ x.__len__()；如果该方法返回零值，则 bool 函数返回 False，否
 Python数据结构接口概览：
 箭头指向谁表示继承谁
 
-                    *Iterable       *Sized         *Container
-                      __iter__        __len__       __contains__
-                 ↗       ↖              ↑                ↗           
-               /               \           丨             /
-             /                   \         丨           /
-*Reversible                   \        |          /
-__reversed__                   [*Collection]
-                                ↗                      ↖
-        ↑                     /              ↑              \ 
-                          ↗                                   ↖
+            *Iterable       *Sized         *Container
+             __iter__        __len__       __contains__
+          ↗        ↖                         ↗           
+        /              \          ↑          /
+      /                  \        丨       /
+*Reversible                \             /
+__reversed__                [*Collection]
+                      ↗                     ↖
+    ↑               /             ↑             \ 
+                 ↗                                ↖
 *Sequence                      *Mapping                 *Set   
-__getitem__                     __getitem__               isdisjoint
-__contains__                    __contains__              __le__
-__iter__                            __eq__                       __lt__
-__reversed__                    __ne__                       __gt__
-index                              get                            __ge__
-count                             items                         __eq__
-                                      keys                           __ne__
-    ↑                                 values                        __and__
-                                                                        __or__
-*MutableSquence                                             __sub__
-__setitem__                                                        __xor__
+__getitem__                     __getitem__              isdisjoint
+__contains__                    __contains__             __le__
+__iter__                        __eq__                   __lt__
+__reversed__                    __ne__                   __gt__
+index                           get                      __ge__
+count                           items                    __eq__
+                                keys                     __ne__
+    ↑                           values                   __and__
+                                                         __or__
+*MutableSquence                                          __sub__
+__setitem__                                              __xor__
 __delitem__
 insert
 append
@@ -78,8 +78,10 @@ reverse
 extend
 pop
 remove
-__iadd__	
-	
+__iadd__
+
+
+
 顶部 3 个抽象基类均只有一个特殊方法。抽象基类 Collection
 （Python 3.6 新增）统一了这 3 个基本接口，每一个容器类型均应实
 现如下事项：
