@@ -1,0 +1,117 @@
+字典推导式：
+country_and_city = [('Usa', 'NewYork'), ('China', 'BeiJing'), ]
+d = {country: city for country, city in country_and_city}
+
+>>>d
+...{'Usa': 'NewYork', 'China': 'BeiJing'}
+
+映射拆包：
+>>> def dump(**kwargs): 
+...     return kwargs 
+... 
+>>> dump(**{'x': 1}, y=2, **{'z': 3}) 
+{'x': 1, 'y': 2, 'z': 3}
+
+**可在dict字面量中使用，可出现多次
+
+
+Python 3.9 支持使用 | 和 |= 合并映射。
+
+
+match/case 匹配映射：
+def get_creators(record: dict) -> list: 
+    match record: 
+        case {'type': 'book', 'api': 2, 'authors': [*names]}:
+            return names 
+        case {'type': 'book', 'api': 1, 'author': name}:
+            return [name] 
+        case {'type': 'book'}:
+            raise ValueError(f"Invalid 'book' record: {record!r}") 
+        case {'type': 'movie', 'director': name}:
+            return [name] 
+        case _:  
+            raise ValueError(f'Invalid record: {record!r}'）
+
+模式中键的顺序无关紧要；与匹配序列模式不同，就算只有部分匹配，映射模式也算成功匹配；可以使用**extra变量捕获多余的键值对
+
+
+“可哈希”
+
+
+自动处理缺失的键：
+defaultdict，__missing__魔法方法
+
+
+dict的变体：
+collections.OrderedDict，保留键插入的顺序，额外实现的方法：popitem()，move_to_end(key, last=True)
+collections.ChainMap
+collections.Counter，用于统计元素数量，返回一个字典，键为元素，值为元素出现的次数
+
+
+子类应该继承UserDict而不是dict
+
+
+不可变映射：
+types 模块提供的 MappingProxyType 是一个包装类，把传入的映
+射包装成一个 mappingproxy 实例，这是原映射的动态代理，只可读
+取。这意味着，对原映射的更新将体现在 mappingproxy 实例身上，
+但是不能通过 mappingproxy 实例更改映射。
+
+>>> from types import MappingProxyType 
+>>> d = {1: 'A'} 
+>>> d_proxy = MappingProxyType(d) 
+>>> d_proxy 
+mappingproxy({1: 'A'}) 
+>>> d_proxy[1]  ❶ 
+'A' 
+>>> d_proxy[2] = 'x'  ❷ 
+Traceback (most recent call last): 
+  File "<stdin>", line 1, in <module> 
+TypeError: 'mappingproxy' object does not support item assignment 
+>>> d[2] = 'B' 
+>>> d_proxy  ❸ 
+mappingproxy({1: 'A', 2: 'B'}) 
+>>> d_proxy[2] 
+'B' 
+
+
+字典视图：
+dict 的实例方法 .keys()、.values() 和 .items() 分别返回
+dict_keys、dict_values 和 dict_items 类的实例。这些字典视
+图是 dict 内部实现使用的数据结构的只读投影。
+
+集合：无序， 唯一
+dict.fromkeys(iterable, value=None)
+
+set字面量：
+>>>a = {1, 2}
+>>>type(a)
+<class "set">
+>>>b = set() # b是一个空set
+>>>c = set([1, 2])
+>>>c
+{1, 2}
+
+
+集合推导式：
+>>> from unicodedata import name
+>>> {chr(i) for i in range(32, 256) if 'SIGN' in name(chr(i),'')} # 如果字符没有名称，返回空字符串
+{'§', '=', '¢', '#', '¤', '<', '¥', 'μ', '×', '$', '¶', '£', '©', '°', '+', '÷', '±', '>', '¬', '®', '%'}
+
+
+dict_keys和dict_items实现了一些特殊方法，支持强大的集合运算符，包括&（交集），|（并集），-（差集），^（对称差集）。
+
+>>> a = {1, 2, 3, 4, 5}
+>>> b = {1, 2, 3, 7, 8}
+>>> print(a & b) # 交集
+{1, 2, 3}
+>>> print(a | b) # 并集
+{1, 2, 3, 4, 5, 7, 8}
+>>> print(a - b) # 差集
+{4, 5}
+>>> print(b - a)
+{8, 7}
+>>> print(a ^ b) # 对称差集
+{4, 5, 7, 8}
+
+

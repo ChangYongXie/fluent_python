@@ -47,39 +47,43 @@ x.__len__()；如果该方法返回零值，则 bool 函数返回 False，否
 则返回 True
 
 Python数据结构接口概览：
-箭头指向谁表示继承谁
+箭头指向谁 表示继承谁
 
             *Iterable       *Sized         *Container
-             __iter__        __len__       __contains__
-          ↗        ↖                         ↗           
-        /              \          ↑          /
-      /                  \        丨       /
-*Reversible                \             /
-__reversed__                [*Collection]
-                      ↗                     ↖
-    ↑               /             ↑             \ 
-                 ↗                                ↖
-*Sequence                      *Mapping                 *Set   
-__getitem__                     __getitem__              isdisjoint
-__contains__                    __contains__             __le__
-__iter__                        __eq__                   __lt__
-__reversed__                    __ne__                   __gt__
-index                           get                      __ge__
-count                           items                    __eq__
-                                keys                     __ne__
-    ↑                           values                   __and__
-                                                         __or__
-*MutableSquence                                          __sub__
-__setitem__                                              __xor__
-__delitem__
-insert
-append
-reverse
-extend
-pop
-remove
-__iadd__
+              __iter__        __len__       __contains__
+           
+        ↗
+                              ↖   ↑   ↗
+*Reversible               
+__reversed__          [*Collection]
 
+        ↑   ↗                     ↑                    ↖
+   
+*Sequence               *Mapping               *Set   
+__getitem__              __getitem__             isdisjoint
+__contains__             __contains__            __le__
+__iter__                     __eq__                     __lt__
+__reversed__             __ne__                     __gt__
+index                       get                          __ge__
+count                       items                      __eq__
+                                keys                       __ne__
+    ↑                          values                     __and__
+                                                              __or__
+*MutableSquence        ↑                         __sub__
+__setitem__       *MutableMapping          __xor__
+__delitem__       __setitem__
+insert                __delitem__                        ↑
+append             clear            
+reverse              pop                          *MutableSet
+extend              popitem                    add
+pop                  setdefault                  discard
+remove             update                      remove
+__iadd__                                             pop
+                                                         clear
+                                                         __ior__
+                                                         __iand__
+                                                         __ixor__
+                                                         __isub__
 
 
 顶部 3 个抽象基类均只有一个特殊方法。抽象基类 Collection
