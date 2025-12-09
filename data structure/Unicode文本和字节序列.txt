@@ -1,0 +1,268 @@
+文本给人类阅读，字节序列供计算机处理。
+
+
+“字符”的最佳定义是Unicode字符
+python3中从str对象中获取的项是Unicode字符，python2中从unicode对象中获取的项也是Unicode字符，而从python2的str对象中获取的项是原始字节序列
+Unicode标准明确区分字符的标识和具体的字节表述
+字符的标识，即码点
+字符的具体表述取决于所用的编码，编码是在码点和字节序列之间转换时所使用的算法
+
+
+把码点转换成字节序列的过程叫编码，把字节序列转换成码点的过程叫解码
+>>> s = 'café' 
+>>> len(s)
+4 
+>>> b = s.encode('utf8')
+>>> b 
+b'caf\xc3\xa9'
+>>> len(b)
+5 
+>>> b.decode('utf8')
+'café'
+
+
+bytes和bytearray中的项是0-255（1字节为8位，最大值为1111 1111（十进制255）），二进制序列的切片始终是同一类型的二进制序列，包括长度为1的切片
+
+>>> cafe = bytes('café', encoding='utf-8')
+>>> cafe[0]
+99
+>>> cafe[:1]
+b'c'
+
+
+处理UnicodeEncodeError
+>>> city = 'São Paulo' 
+>>> city.encode('utf_8')
+b'S\xc3\xa3o Paulo' 
+>>> city.encode('utf_16') 
+b'\xff\xfeS\x00\xe3\x00o\x00 \x00P\x00a\x00u\x00l\x00o\x00' 
+>>> city.encode('iso8859_1')
+b'S\xe3o Paulo' 
+>>> city.encode('cp437')
+Traceback (most recent call last): 
+  File "<stdin>", line 1, in <module> 
+  File "/.../lib/python3.4/encodings/cp437.py", line 12, in encode 
+    return codecs.charmap_encode(input,errors,encoding_map) 
+UnicodeEncodeError: 'charmap' codec can't encode character '\xe3' in position 1: character maps to <undefined> 
+
+>>> city.encode('cp437', errors='ignore')
+b'So Paulo' 
+>>> city.encode('cp437', errors='replace')
+b'S?o Paulo' 
+>>> city.encode('cp437', errors='xmlcharrefreplace')
+b'S&#227;o Paulo'
+
+处理UnicodeDecodeError
+并非所有字节都包含有效的 ASCII 字符，也并非所有字节序列都是有效的 UTF-8 或 UTF- 16 码点
+>>> octets = b'Montr\xe9al'
+>>> octets.decode('utf_8')
+Traceback (most recent call last): 
+  File "<stdin>", line 1, in <module> 
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 5: invalid continuation byte 
+
+>>> octets.decode('utf_8', errors='replace')
+'Montral'
+
+
+在示例 4-4 中，你可能注意到了，UTF-16 编码的序列开头有几个额外的字节，如下所示。
+>>> u16 = 'El Niño'.encode('utf_16') 
+>>> u16 
+b'\xff\xfeE\x00l\x00 \x00N\x00i\x00\xf1\x00o\x00'
+
+我指的是 b'\xff\xfe'。这是 BOM，即字节序标记（byte-ordermark），指明编码时使用 Intel CPU 的小端序。
+
+在小端序设备中，各个码点的最低有效字节在前面。例如，字母 'E' 的码点是 U+0045（十进制数 69），在字节偏移的第 2 位和第 3 位编码为 69 和 0。
+>>> list(u16) 
+[255, 254, 69, 0, 108, 0, 32, 0, 78, 0, 105, 0, 241, 0, 111, 0]
+
+在大端序 CPU 中，编码顺序反过来，'E' 被编码为 0 和 69。
+
+为了避免混淆，UTF-16 编码在要编码的文本前面加上特殊的不可见字符ZERO WIDTH NO-BREAK SPACE（U+FEFF）。在小端序系统中，这个
+字符编码为 b'\xff\xfe'（十进制数 255, 254）。因为按照设计，Unicode 标准没有 U+FFFE 字符，在小端序编码中，字节序列
+b'\xff\xfe' 必定是 ZERO WIDTH NO-BREAK SPACE，所以编码解
+码器知道该用哪个字节序。
+
+UTF-16 有两个变种：UTF-16LE，显式指明使用小端序；UTF-16BE，显式
+指明使用大端序。如果直接使用这两个变种，则不生成 BOM。
+>>> u16le = 'El Niño'.encode('utf_16le') 
+>>> list(u16le) 
+[69, 0, 108, 0, 32, 0, 78, 0, 105, 0, 241, 0, 111, 0] 
+>>> u16be = 'El Niño'.encode('utf_16be') 
+>>> list(u16be) 
+[0, 69, 0, 108, 0, 32, 0, 78, 0, 105, 0, 241, 0, 111]
+
+如果有 BOM，那么 UTF-16 编码解码器应把开头的 ZERO WIDTH NOBREAK SPACE 字符去掉，只提供文件中真正的文本内容。根据
+Unicode 标准，如果文件使用 UTF-16 编码，而且没有 BOM，那么应该假定使用的是 UTF-16BE（大端序）。然而，Intel x86 架构用的是小端
+序，因此也有很多文件用的是不带 BOM 的小端序 UTF-16 编码。
+
+
+处理文本文件
+“Unicode三明治”原则：
+bytes -> str 输入时解码字节序列
+100% str 只处理文本
+str -> bytes 输出时编码文本
+
+
+eval()函数用于动态地执行字符串形式的python表达式，并返回表达式的值
+
+
+unicodedata.name()用于获取Unicode字符的官方名称，接收一个Unicode字符作为输入，并返回该字符的官方名称
+
+
+为了正确比较而规范化Unicode字符串
+unicode有组合字符，如“café”这个词可以使用两种方式构成，分别有4个和5个码点
+
+这个问题的解决方案是使用 unicodedata.normalize() 函数。该函数的第一个参数是
+ 'NFC（使用最少的码点构成等价的字符串）'、
+'NFD（把合成字符分解成基字符和单独的组合字符）'、
+'NFKC（K表示兼容性）' 和 'NFKD' 这 4 个字符串中的一个。
+
+>>> from unicodedata import normalize 
+>>> s1 = 'café' 
+>>> s2 = 'cafe\N{COMBINING ACUTE ACCENT}' 
+>>> len(s1), len(s2) 
+(4, 5) 
+>>> len(normalize('NFC', s1)), len(normalize('NFC', s2)) 
+(4, 4) 
+>>> len(normalize('NFD', s1)), len(normalize('NFD', s2)) 
+(5, 5) 
+>>> normalize('NFC', s1) == normalize('NFC', s2) 
+True 
+>>> normalize('NFD', s1) == normalize('NFD', s2) 
+True
+
+
+大小写同一化：
+str.casefold()
+
+去掉变音符
+import unicodedata 
+import string 
+def shave_marks(txt): 
+    """删除所有变音符""" 
+    norm_txt = unicodedata.normalize('NFD', txt)
+    shaved = ''.join(c for c in norm_txt if not unicodedata.combining(c))  
+
+    return unicodedata.normalize('NFC', shaved)
+
+
+删除所有拉丁基字符上的变音符
+def shave_marks_latin(txt): 
+    """删除所有拉丁基字符上的变音符""" 
+    norm_txt = unicodedata.normalize('NFD', txt)
+    latin_base = False 
+    preserve = [] 
+    for c in norm_txt: 
+        if unicodedata.combining(c) and latin_base:
+            continue  # 忽略拉丁基字符的变音符 
+        preserve.append(c)
+        # 如果不是组合字符，那就是新的基字符 
+        if not unicodedata.combining(c):
+            latin_base = c in string.ascii_letters 
+    shaved = ''.join(preserve) 
+    return unicodedata.normalize('NFC', shaved) 
+
+
+str.maketrans() 构建“字符到字符”替换映射表，参数为两个字符串（str1[0]对应str2[0]）或一个字典
+str.translate(str.maketrans()的实例)
+
+
+str.isalpha()，str.isprintable()，str.isdeciaml()，str.isnumeric()
+
+
+字符串查找脚本：
+
+import sys
+import unicodedata
+
+
+
+START, END = ord(' '), sys.maxunicode + 1
+          
+def find(*query_words, start=START, end=END):
+    query = {w.upper() for w in query_words}
+    for code in range(start, end):
+        char = chr(code)
+        name = unicodedata.name(char, None)         
+        if name and query.issubset(name.split()):
+            print(f'U+{code:04X}\t{char}\t{name}') 
+ 
+ 
+def main(words):
+    if words:
+        find(*words)
+    else:
+        print('Please provide words to find.')
+if __name__ == '__main__':
+    main(sys.argv[1:])
+
+字符的数值意义：
+
+import unicodedata 
+import re 
+re_digit = re.compile(r'\d') 
+sample = '1\xbc\xb2\u0969\u136b\u216b\u2466\u2480\u3285' 
+for char in sample: 
+    print(f'U+{ord(char):04x}',                         
+            char.center(6),                             
+ 
+ 
+            're_dig' if re_digit.match(char) else '-', 
+            'isdig' if char.isdigit() else '-',         
+ 
+            'isnum' if char.isnumeric() else '-',       
+            f'{unicodedata.numeric(char):5.2f}',        
+            unicodedata.name(char),                     
+            sep='\t')
+
+
+正则表达式中的str和bytes:
+
+import re 
+re_numbers_str = re.compile(r'\d+')
+re_words_str = re.compile(r'\w+')
+re_numbers_bytes = re.compile(rb'\d+')
+re_words_bytes = re.compile(rb'\w+')
+
+text_str = ("Ramanujan saw \u0be7\u0bed\u0be8\u0bef"
+            " as 1729 = 1³ + 12³ = 9³ + 10³.")
+
+text_bytes = text_str.encode('utf_8')
+
+print(f'Text\n  {text_str!r}')
+print('Numbers')
+print('  str  :', re_numbers_str.findall(text_str))      
+print('  bytes:', re_numbers_bytes.findall(text_bytes))
+
+print('Words') 
+print('  str  :', re_words_str.findall(text_str))        
+print('  bytes:', re_words_bytes.findall(text_bytes))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
