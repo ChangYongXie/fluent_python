@@ -1,0 +1,48 @@
+Python提供了几种构建简单类的方式，这些类只是字段的容器，几乎没有额外功能。这种模式称为“数据类”。
+
+
+可简单化数据类构建过程的类构建器
+collections.namedtuple
+typing.NamedTuple
+@dataclasses.dataclass
+
+
+数据类构建器自动提供必要的__init__，__repr__和__eq__等方法
+
+collections.namedtuple
+
+Coordinate = namedtuple('Coordinate', 'lat lon')    # 或者 Coordinate = namedtuple('Coordinate', ['lat', 'lon'])
+
+
+from typing import NamedTuple 
+class Coordinate(NamedTuple): 
+    lat: float 
+    lon: float 
+    def __str__(self): 
+        ns = 'N' if self.lat >= 0 else 'S' 
+        we = 'E' if self.lon >= 0 else 'W' 
+        return f'{abs(self.lat):.1f}°{ns}, {abs(self.lon):.1f}°{we}'
+--------------------------------------------------------------------------------------------------
+from typing import NamedTuple
+
+Coordinate = NamedTuple('Coordinate', [('lat', float), ('lon', float)])    # 或者 Coordinate = NamedTuple('Coordinate', lat=float, lon=float)
+
+
+from dataclasses import dataclass 
+@dataclass(frozen=True) 
+class Coordinate: 
+    lat: float 
+    lon: float 
+    def __str__(self): 
+        ns = 'N' if self.lat >= 0 else 'S' 
+        we = 'E' if self.lon >= 0 else 'W' 
+        return f'{abs(self.lat):.1f}°{ns}, {abs(self.lon):.1f}°{we}'
+
+
+
+
+
+
+
+
+
