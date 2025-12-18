@@ -12,7 +12,22 @@ typing.NamedTuple
 collections.namedtuple
 
 Coordinate = namedtuple('Coordinate', 'lat lon')    # 或者 Coordinate = namedtuple('Coordinate', ['lat', 'lon'])
+可通过名称或位置访问字段，如：
+>>>x = Coordinate(0.1, 1.2)
+>>>x.lat
+...0.1
+>>>x[1]
+...1.2
 
+作为tuple的子类，Coordinate继承了一些有用的方法，如__eq__，__lt__，可用于Coordinate实例构成的列表
+除了从tuple继承，namedtuple还有几个额外的属性和方法
+
+>>>Coordinate._fields
+...('lat', 'lon')
+>>>y = Coorginate._make([3.14, 2.84])
+>>>y._asdict()
+...{'lat': 3.14, 'lon': 2.84}
+---------------------------------------------------------------------------------------------
 
 from typing import NamedTuple 
 class Coordinate(NamedTuple): 
@@ -22,7 +37,9 @@ class Coordinate(NamedTuple):
         ns = 'N' if self.lat >= 0 else 'S' 
         we = 'E' if self.lon >= 0 else 'W' 
         return f'{abs(self.lat):.1f}°{ns}, {abs(self.lon):.1f}°{we}'
+
 --------------------------------------------------------------------------------------------------
+
 from typing import NamedTuple
 
 Coordinate = NamedTuple('Coordinate', [('lat', float), ('lon', float)])    # 或者 Coordinate = NamedTuple('Coordinate', lat=float, lon=float)
@@ -37,6 +54,75 @@ class Coordinate:
         ns = 'N' if self.lat >= 0 else 'S' 
         we = 'E' if self.lon >= 0 else 'W' 
         return f'{abs(self.lat):.1f}°{ns}, {abs(self.lon):.1f}°{we}'
+
+
+　typing.NamedTuple 和 @dataclass 构建的类有一个
+__annotations__ 属性，存放字段的类型提示。然而，不建议直
+接读取 __annotations__ 属性。推荐使用
+inspect.get_annotations(MyClass)（Python 3.10 新增）
+或 typing.get_type_hints(MyClass)（Python 3.5~3.9）获
+取类型信息，因为这两个函数提供了额外的服务，例如可以解析类
+型提示中的向前引用。15.5.1 节将详谈这个问题。
+下面分别讨论这些主要功能。
+01. 
+可变实例
+3 个数据类构建器之间主要的区别在于，
+collections.namedtuple 和 typing.NamedTuple 构建的
+类是 tuple 的子类，因此实例是不可变的。@dataclass 默认构
+建可变的类。不过，@dataclass 装饰器接受一个关键字参数
+frozen，如示例 5-3 所示。指定 frozen=True，初始化实例之
+后，如果为字段赋值，则抛出异常。
+02. class
+ 语句句法
+只有 typing.NamedTuple 和 dataclass 支持常规的 class
+语句句法，方便为构建的类添加方法和文档字符串。
+03. 
+构造字典
+两种具名元组都提供了构造 dict 对象的实例方法
+（._asdict），可根据数据类实例的字段构造字典。
+dataclasses 模块也提供了构造字典的函数，即
+dataclasses.asdict。
+04. 
+获取字段名称和默认值
+3 个类构建器都支持获取字段名称和可能配置的默认值。对于具名
+元组类，这些元数据在类属性 ._fields 和
+._fields_defaults 中。对于使用 dataclass 装饰器构建的
+类，这些元数据使用 dataclasses 模块中的 fields 函数获
+取。fields 函数返回一个由 Field 对象构成的元组，Field 对
+象有几个属性，包括 name 和 default。
+05. 
+获取字段类型
+typing.NamedTuple 和 @dataclass 定义的类有一个
+__annotations__ 类属性，值为字段名称到类型的映射。前面说
+过，不要直接读取 __annotations__ 属性，而要使用
+typing.get_type_hints 函数。
+06. 
+更改之后创建新实例
+对于具名元组实例 x，x._replace(**kwargs) 根据指定的关键
+字参数替换某些属性的值，返回一个新实例。模块级函数
+dataclasses.replace(x, **kwargs) 与 dataclass 装饰
+的类具有相同的作用。
+07. 
+运行时定义新类
+class 句法虽然可读性更高，但毕竟还是硬编码的。框架可能需要
+在运行时动态构建数据类。为此，可以使用默认的函数调用句法，
+collections.namedtuple 和 typing.NamedTuple 都支
+持。dataclasses 模块提供的 make_dataclass 函数也是出于
+这个目的。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
