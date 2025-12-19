@@ -111,8 +111,213 @@ collections.namedtuple 和 typing.NamedTuple 都支
 这个目的。
 
 
+从 Python 3.7 开始，namedtuple 接受 defaults 关键字参数，值为一个产生 N项的可迭代对象，为从右数的 N个字段指定默认值。示
+例 5-6 定义具名元组 Coordinate，为 reference 字段指定默认
+值。
+>>> Coordinate = namedtuple('Coordinate', 'lat lon reference', 
+defaults=['WGS84']) 
+>>> Coordinate(0, 0) 
+Coordinate(lat=0, lon=0, reference='WGS84') 
+>>> Coordinate._field_defaults 
+{'reference': 'WGS84'}
+
+带类型的具名元组，还可指定默认值
+from typing import NamedTuple
+class Coordinate(NamedTuple):
+    lat: float
+    lon: float
+    reference: str = 'WGS84'
 
 
+类型提示入门：
+类型提示（类型注解）声明函数参数，返回值，变量和属性的预期类型
+运行时没有作用
+类型注解的基本语法：var_name: some_type
+
+定义数据类时，最常使用以下类型:
+一个具体类，例如 str 或 FrenchDeck。
+一个参数化容器类型，例如 list[int]、tuple[str, float]等。
+typing.Optional，例如 Optional[str]，声明一个字段的类型可以是 str 或 None。
+
+另外，还可以为变量指定初始值。在 typing.NamedTuple 和@dataclass 声明中，指定的初始值作为属性的默认值，防止调用构造
+函数时没有提供对应的参数。
+var_name: some_type = a_value
+
+
+类型注解的意义：
+这是一个普通的类，没有继承自NamedTuple
+class DemoPlainClass: 
+    a: int
+    b: float = 1.1
+    c = 'spam'
+
+a只作为注解存在，不是类属性，因为没有绑定值。b和c存储为类属性，因为它们绑定了值。
+__annotations__由解释器创建，记录源码中出现的类型提示，即使是普通的类
+>>>DemoPlainClass.__annotations__
+...{'a': <class 'int'>, 'b': <class 'float'>}
+
+
+一个NamedTuple类：
+
+import typing 
+class DemoNTClass(typing.NamedTuple): 
+    a: int
+    b: float = 1.1
+    c = 'spam'
+
+a是注解，也是实例属性；b是注解，也是实例属性，默认值为1.1；c是普通的类属性，没有注解
+DemoNTClass还有定制的文档字符串
+>>>DemoNTClass.__doc__
+...'DemoNTClass(a, b)'
+
+
+一个dataclass类：
+
+from dataclasses import dataclass 
+@dataclass 
+class DemoDataClass: 
+    a: int
+    b: float = 1.1
+    c = 'spam' 
+
+>>> DemoDataClass.__annotations__
+{'a': <class 'int'>, 'b': <class 'float'>}
+>>> DemoDataClass.__doc__ 
+'DemoDataClass(a: int, b: float = 1.1)'
+>>> DemoDataClass.a 
+Traceback (most recent call last): 
+  File "<stdin>", line 1, in <module> 
+AttributeError: type object 'DemoDataClass' has no attribute 'a' 
+>>> DemoDataClass.b 
+1.1 
+>>> DemoDataClass.c 
+'spam'
+
+a属性只在DemoDataClass实例中存在
+>>> dc = DemoDataClass(9) 
+>>> dc.a 
+9 
+>>> dc.b 
+1.1 
+>>> dc.c 
+'spam'
+
+
+dataclass详解：
+dataclass的完整签名
+@dataclass(*, init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+第一个位置上的*表示后面的都是关键字参数，frozen=True时 实例不可变，order=True时生成__lt__，__le__，__gt__，__ge__，如果
+eq=False，或者自行定义或继承其他用于比较的方法，则抛出异常
+
+
+我们已经见过最基本的字段选项，即在提供类型提示的同时设定默认值。声明的字段将作为参数传给生成的 __init__ 方法。Python 规
+定，带默认值的参数后面不能有不带默认值的参数。因此，为一个字段声明默认值之后，余下的字段都要有默认值。
+
+
+对初级 Python 开发人员来说，可变的默认值往往导致 bug。如果在函数定义中使用可变默认值，调用函数时很容易破坏默认值，则导致后续
+调用的行为发生变化（这个问题将在 6.5.1 节详谈）。类属性通常用作实例属性的默认值，数据类也是如此。@dataclass 使用类型提示中的
+默认值生成传给 __init__ 方法的参数默认值。为了避免 bug，dataclass拒绝像下面一样定义类
+
+@dataclass
+class ClubMember:
+    name: str
+    guests: list = []
+
+修正后的类：
+
+@dataclass
+calss ClubMember:
+    name: str
+    guests: list = field(default_factory=list)
+
+guests 字段的默认值不是一个列表字面量，而是调用 dataclasses.field 函数，把参数设为
+default_factory=list，以此设定默认值。default_factory 参数的值可以是一个函数、一个类，或者其他可调
+用对象，在每次创建数据类的实例时调用（不带参数），构建默认值。这样，每个 ClubMember 实例都有自己的一个 list，而不是所有实
+例共用同一个 list。共用往往导致 bug，而且我们很少希望共用。
+
+
+参数化泛型：
+from dataclasses import dataclass, field
+
+@dataclass
+class ClubMember:
+    name: str
+    guests: list[str] = field(default_factory=list)
+
+list[str]的意思是由字符串构成的列表
+guests: list 和 guests: list[str] 是有区别的。guests: list 表示 guests 列表可以由任何类型的对象构成，而 guests: list[str] 的意思是 guests
+列表中的每一项都必须是字符串。
+
+
+*重点（内容过多，省略），《fluent python》p135-p144
+
+
+代码异味：
+只存储数据而没有行为的类
+
+
+把数据类用作中间表述
+把数据类用作脚手架
+
+
+模式匹配类实例：
+简单类模式
+match x:
+    case float():
+        do_something_with(x)
+像下面这样做可能导致bug
+match x:
+    case float:
+        do_something_with(x)
+这里的float是匹配变量绑定的对象
+
+关键字类模式
+import typing 
+class City(typing.NamedTuple):
+    continent: str
+    name: str
+    country: str
+ 
+cities = [
+    City('Asia', 'Tokyo', 'JP'), 
+    City('Asia', 'Delhi', 'IN'), 
+    City('North America', 'Mexico City', 'MX'), 
+    City('North America', 'New York', 'US'), 
+    City('South America', 'São Paulo', 'BR'), 
+]
+
+def match_asian_countries(): 
+    results = [] 
+    for city in cities: 
+        match city: 
+            case City(continent='Asia', country=cc): 
+                results.append(cc) 
+    return results
+
+位置类模式
+以下类模式使用位置类模式胡哦去亚洲城市列表
+def match_asian_cities_pos(): 
+    results = []
+    for city in cities:
+        match city:
+            case City('Asia'):
+                results.append(city)
+    return results
+City('Asia') 匹配的 City 实例，第一个属性的值是 'Asia'，其他属性的值不考虑。
+如果你想收集 country 属性的值，可以像下面这样写。
+def match_asian_countries_pos(): 
+    results = [] 
+    for city in cities: 
+        match city: 
+            case City('Asia', _, country): 
+                results.append(country) 
+    return results
+与前面一样，City('Asia', _, country) 也匹配位于亚洲的城市，不过现在把变量 country 绑定到了实例的第三个属性上。
+可是，“第一个属性”和“第三个属性”是什么意思呢？
+City 或其他类若想使用位置模式，要有一个名为 __match_args__的特殊类属性。本章讲到的类构建器会自动创建这个属性。对于 City
+类，__match_args__ 属性的值如下所示。
+>>> City.__match_args__ 
+('continent', 'name', 'country')
 
 
 
