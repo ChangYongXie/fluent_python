@@ -46,11 +46,11 @@ charles绑定的对象具有相同的值（==比较的是值），但是它们�
 >>> l1 = [1, 2]
 >>> l2 = list(l1)
 >>> l1 is l2
-True
+False
 
 >>> l3 = l1[:]
 >>> l1 is l3
-True
+False
 
 >>> t1 = (1, 2, )
 >>> t2 = tuple(t1)
@@ -84,7 +84,93 @@ True
 
 上述行为：
 元组使用+=时会创建新对象，重新赋值引用，因为元组是不可变的
-如果时列表使用+=时会在原对象上直接修改，因为列表是可变的
+列表使用+=时会在原对象上直接修改，因为列表是可变的
+
+
+为任意对象做浅拷贝和深拷贝
+浅拷贝通常来说没什么问题，但有时我们需要的是深拷贝（即副本不共享内部对象的引用）。
+copy 模块提供的 copy 和 deepcopy 函数分别对任意对象做浅拷贝和深拷贝。
+
+例：
+class Bus:
+    def __init__(self, passengers=None):
+        if passengers is None:
+            self.passengers = []
+        else:
+            self.passengers = list(passengers)
+
+    def pick(self, name):
+        self.passengers.append(name)
+
+    def drop(self, name):
+        self.passengers.remove(name)
+
+
+>>> import copy
+>>> bus1 = Bus(['Alice', 'Bill', 'Claire', 'David'])
+>>> bus2 = copy.copy(bus1)
+>>> bus3 = copy.deepcopy(bus1)
+>>> id(bus1), id(bus2), id(bus3)
+(4301498296, 4301499416, 4301499752)
+>>> bus1.drop('Bill')
+>>> bus2.passengers
+['Alice', 'Claire', 'David']
+>>> id(bus1.passengers), id(bus2.passengers), id(bus3.passengers)
+(4302658568, 4302658568, 4302657800)
+>>> bus3.passengers
+['Alice', 'Bill', 'Claire', 'David']
+
+
+函数的参数时引用时：
+共享传参指函数的形参获得实参引用的副本。也就是说，函数内部的形参是实参的别名
+不要使用可变类型作为函数的默认值
+防御可变参数
+
+
+del和垃圾回收：
+del不是函数而是语句，写作del x，而不是del(x)
+
+其次，del语句删除引用，而不是对象。del可能导致对象被当作垃圾回收，但是仅当删除的变量保存的是对象的最后一个引用时。
+重新绑定也可能导致对象的引用数量归零，致使对象被销毁
+>>> a = [1, 2]
+>>> b = a
+>>> del a    
+>>> b
+[1, 2]
+>>> b = [3]
+
+列表[1, 2]被销毁了
+
+在 CPython 中，垃圾回收使用的主要算法是引用计数。实际上，每个对象都会统计有多少引用指向自己。当引用计数
+归零时，对象立即被销毁：CPython 在对象上调用 __del__ 方法（如果定义了），然后释放分配给对象的内存。
+
+>>> import weakref
+>>> s1 = {1, 2, 3}
+>>> s2 = s1        
+>>> def bye():
+...     print('...like tears in the rain.') 
+... 
+>>> ender = weakref.finalize(s1, bye)
+>>> ender.alive
+True
+>>> del s1
+>>> ender.alive
+True
+>>> s2 = 'spam'
+...like tears in the rain. 
+>>> ender.alive
+False
+
+s1 和 s2 是别名，指向同一个集合 {1, 2, 3}。
+这个函数一定不能是要销毁的对象的绑定方法，否则会有一个指向对象的引用。
+在 s1 引用的对象上注册 bye 回调。
+调用 finalize 对象之前，.alive 属性的值为 True。
+如前所述，del 不删除对象，而是删除对象的引用 s1。
+重新绑定最后一个引用 s2，让 {1, 2, 3} 不可达。对象被销毁
+了，调用了 bye 回调，ender.alive 的值变成了 False。
+
+上述示例的目的是明确指出 del 不删除对象，但是执行 del 操作后
+可能会导致对象不可达，从而使得对象被删除。
 
 
 
