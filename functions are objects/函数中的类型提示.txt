@@ -1,0 +1,137 @@
+Python 仍是一门动态类型语言，作者并不意图强制使用类型提示，这只是一种约定
+
+
+渐进式类型系统
+渐进式类型系统具有以下性质：
+1.类型注解是可选的。没有类型提示的代码，会假定其为Any类型
+2.不在运行时捕获类型错误。在运行时不能阻止把不一致的值传给函数获分配给变量
+3.不能改善性能
+
+静态类型系统（强制类型提示，如C）
+
+
+@pytest.mark.parametrize装饰器
+@pytest.mark.parametrize是 Pytest 框架中一个非常强大且常用的装饰器，用于对同一个测试函数实现
+多组参数的参数化测试，避免了为只有数据不同的测试场景编写重复代码
+例：
+@pytest.mark.parametrize("input, expected", [
+    ("hello", 5),
+    ("", 0),
+    ("python", 6)
+])
+def test_string_length(input, expected):
+      assert len(input) == expected
+
+
+编写类型提示时建议遵守以下代码风格。
+参数名称和 : 之间不留空格，: 后加一个空格。
+参数默认值前面的 = 两侧加空格。
+
+
+使用None表示默认值
+如果想把 plural 参数的默认值设为 None，则函数签名要改成下面这样。
+from typing import Optional 
+def show_count(count: int, singular: str, plural: Optional[str] = None) -> str:
+
+Optional[str] 表示 plural 的值可以是一个 str 或 None。
+必须显式地提供默认值，即 = None。如果不为 plural 分配默认值，则 Python 运行时将把它视作必需的参
+数。记住，类型提示在运行时会被忽略
+
+
+类型由受支持的操作定义
+实践中，最好把受支持的操作当作类型的关键特征。
+例：
+from collections import abc
+def double(x: abc.Sequence):
+      return x * 2
+类型检查工具将拒绝接受这段代码。如果告诉 Mypy，x 是abc.Sequence 类型，那么 Mypy 在遇到 x　*　2 时将报错，因为抽
+象基类 Sequence 没有实现或继承 __mul__ 方法。在运行时，这段代码既能成功处理 str、tuple、list、array 等具体的序列，也能
+处理数值，因为类型提示在运行时会被忽略。但是，类型检查工具只关注显式声明的类型，而 abc.Sequence 没有 __mul__ 方法。
+
+在渐进式类型系统中，以下两种对类型的解读相互影响着彼此。
+鸭子类型：
+对象有类型，但是变量（包括参数）没有类型。在实践中，为对象声明的类型无关紧要，重要的是对象具体支持什么操作。
+名义类型：
+对象和变量都有类型。但是，对象只存在于运行时，类型检查工具只关心使用类型提示注解变量（包括参数）的源码。
+
+例：
+class Bird:
+      pass
+class Duck(Bird):
+      def quack(self):
+        print('Quack!')
+
+def alert(birdie):
+      birdie.quack()
+def alert_duck(birdie: Duck) -> None:
+      birdie.quack()
+def alert_bird(birdie: Bird) -> None:
+      birdie.quack()
+
+>>> daffy = Duck()
+>>> alert(daffy)
+Quack!
+>>> alert_duck(daffy)
+Quack!
+>>> alert_bird(daffy)
+Quack!
+
+Duck类是Bird类的子类
+在运行时，Python 不关注声明的类型，仅使用鸭子类型。
+
+例：
+from birds import * 
+woody = Bird() #1
+alert(woody) #2
+alert_duck(woody) #3
+alert_bird(woody) #4
+
+1.woody为Bird实例
+2.alert(woody)，无声明，但woody无quack()方法
+3.alert_duck(woody)，woody不是Duck实例，且woody无quack()方法
+4.alert_bird(woody)，woody是Bird实例，但woody无quack()方法
+
+
+注解中可用的类型
+大部分 Python 类型可以在类型提示中使用，不过有一些限制和建议。另外，typing 模块引入的特殊结构，在语义上或许会让你惊讶。
+可用于注解的所有主要类型：
+*typing.Any；
+*简单的类型和类；
+*typing.Optional 和 typing.Union；
+*泛化容器，包括元组和映射；
+*抽象基类；
+*泛化可迭代对象；
+*参数化泛型和 TypeVar；
+*typing.Protocols——静态鸭子类型的关键；
+*typing.Callable；
+*typing.NoReturn——就此打住比较好。
+
+　
+Any类型：
+Any 类型是渐进式类型系统的基础，是人们熟知的动态类型。下面是一个没有类型信息的函数：
+def double(x): 
+      return x * 2
+在类型检查工具看来，假定其具有以下类型信息：
+def double(x: Any) -> Any: 
+      return x * 2
+
+也就是说，x 参数和返回值可以是任何类型，二者甚至可以不同。Any类型支持所有可能的操作。
+以下述签名为例，对比一下 Any 和 object。
+def double(x: object) -> object:
+这个函数也接受每一种类型的参数，因为任何类型都是 object 的子类型。然而，类型检查工具拒绝以下函数。因为 object 不支持 __mul__ 操作。
+
+越一般的类型，接口越狭窄，即支持的操作越少。
+但是，Any 是一种魔法类型。当然，没有任何一种类型可以支持所有可能的操作，因此使用 Any 不利于类型检查工具完成核心任务，即检测潜在的非法操作，防止运行时异
+常导致程序崩溃。
+
+
+
+
+
+
+
+
+
+
+
+
