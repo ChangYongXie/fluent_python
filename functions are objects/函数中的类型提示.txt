@@ -124,6 +124,109 @@ def double(x: object) -> object:
 但是，Any 是一种魔法类型。当然，没有任何一种类型可以支持所有可能的操作，因此使用 Any 不利于类型检查工具完成核心任务，即检测潜在的非法操作，防止运行时异
 常导致程序崩溃。
 
+子类型与相容
+子类型：
+假有父类T1及其子类T2，T2继承T1的所有方法，但子类T2可能实现了其他方法，
+相容规则如下：
+01. 对 T1 及其子类型 T2，T2 与 T1 相容（里氏替换）。
+02. 任何类型都与 Any 相容：声明为 Any 类型的参数接受任何类型的对象。
+03. Any 与任何类型都相容：始终可以把 Any 类型的对象传给预期其他类型的参数。
+
+
+简单的类型和类
+Optional类型和Union类型
+前例：
+from typing import Optional 
+def show_count(count: int, singular: str, plural: Optional[str] = None) -> str:
+
+Optional[str] 结构其实是 Union[str, None] 的简写形式，表示 plural 的类型可以是 str 或 None。
+Union[str, bytes] 可以写成 str | bytes。不用从typing模块导入Union或Optional
+plural: Optional[str] = None
+plural: str | None = None
+| 运算符还可用于构建 isinstance 和 issubclass 的第二个参数，例如 isinstance(x, int | str)。
+内置函数 ord 的签名：def ord(c: Union[str, bytes]) -> int: ...
+下面示例中的函数接受一个 str，但是可以返回一个 str 或 float：
+from typing import Union
+def parse_token(token: str) -> Union[str, float]:
+      try:
+             return float(token)
+      except ValueError:
+             return token
+
+Union[] 至少需要两种类型。嵌套的 Union 类型与扁平的 Union 类型效果相同。因此，
+Union[A, B, Union[C, D, E]]和Union[A, B, C, D, E]作用一样
+Union 所含的类型之间不应相容。
+
+
+泛化容器
+大多数 Python 容器是异构的。例如，在一个 list 中可以混合存放不同的类型。然而，实际使用中这么做没有什么意义。存入容器的对象往
+往需要进一步处理，因此至少要有一个通用的方法。
+
+泛型可以用类型参数来声明，以指定可以处理的项的类型。例如，可以像示例那样参数化一个 list，约束元素的类型。
+例：
+def tokenize(text: str) -> list[str]: 
+      return text.upper().split()
+
+stuff: list 和 stuff: list[Any] 这两个注解的意思相同，都表示 stuff 是一个列表，而且列表中的项可以是任何类型的对象。
+
+部分容器类型及对应的类型提示：
+容器                                                对应的类型提示
+list                                                  typing.List
+set                                                  typing.Set
+frozenset                                        typing.FrozenSet
+collections.deque                            typing.Deque
+collections.abc.MutableSequence    typing.MutableSequence
+collections.abc.Sequence                 typing.Sequence
+collections.abc.Set                           typing.AbstractSet
+collections.abc.MutableSet              typing.MutableSet
+
+
+元组
+用作记录：
+元组用作记录时，使用内置类型 tuple 注解，字段的类型在 []内声明。如：('Shanghai', 24.28, 'China')，类型提示为 tuple[str, float, str]。
+
+带有具名字段：
+如果想注解带有多个字段的元组，或者代码中多次用到的特定类型的元组，强烈建议使用 typing.NamedTuple。
+例：
+from typing import NamedTuple
+from geolib import geohash as gh  # type: ignore
+PRECISION = 9
+class Coordinate(NamedTuple):
+      lat: float
+      lon: float
+def geohash(lat_lon: Coordinate) -> str:
+      return gh.encode(*lat_lon, PRECISION)
+
+用作不可变序列：
+如果想注解长度不定、用作不可变列表的元组，则只能指定一个类型，后跟逗号和 ...
+例如，tuple[int, ...] 表示项为 int 类型的元组。省略号表示元素的数量≥1
+stuff: tuple[Any, ...] 和 stuff: tuple这两个注解的意思相同
+
+
+泛化映射
+泛化映射类型使用 MappingType[KeyType, ValueType] 形式注解。
+例：
+import sys
+import re
+import unicodedata
+from collections.abc import Iterator
+RE_WORD = re.compile(r'\w+') # 正则表达式匹配字母和数字
+STOP_CODE = sys.maxunicode + 1 # 最大码点
+
+def tokenize(text: str) -> Iterator[str]:
+      """返回全大写的单词构成的可迭代对象"""
+      for match in RE_WORD.finditer(text): # 匹配单词
+            yield match.group().upper() # 迭代单词
+
+def name_index(start: int = 32, end: int = STOP_CODE) -> dict[str, set[str]]:
+      index: dict[str, set[str]] = {} # 键为str，值为set的字典
+             for char in (chr(i) for i in range(start, end)): # 从指定码点范围迭代字符
+                   if name := unicodedata.name(char, ''): # 如果name的值不为假（char有名字），进入下面的for循环
+                        for word in tokenize(name): # 迭代字符串（字符的官方名称）
+                              index.setdefault(word, set()).add(char) # 有则添加，无则集合
+      return index
+
+当把 dict 用作记录时，一般来说，所有键都使用 str 类型，对应的值是什么类型则取决于键的含义。
 
 
 
