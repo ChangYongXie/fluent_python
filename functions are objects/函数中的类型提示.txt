@@ -228,6 +228,76 @@ def name_index(start: int = 32, end: int = STOP_CODE) -> dict[str, set[str]]:
 
 当把 dict 用作记录时，一般来说，所有键都使用 str 类型，对应的值是什么类型则取决于键的含义。
 
+抽象基类
+发送时要保守，接收时要大方    ----柏斯塔尔定律
+理想情况下，函数的参数应接受那些抽象类型，而不是具体类型。这样对调用方来说更加灵活。
+例：
+from collections.abc import Mapping 
+def name2hex(name: str, color_map: Mapping[str, int]) -> str:
+由于注解的类型是 abc.Mapping，因此调用方可以提供 dict、defaultdict 和 ChainMap 的实例，UserDict 子类的实例，或者Mapping 的任何子类型。
+
+def name2hex(name: str, color_map: dict[str, int]) -> str:
+这里，color_map 必须是 dict 或其子类型，例如 defaultDict或 OrderedDict。特别注意，使用 collections.UserDict 的子
+类无法通过类型检查，尽管 3.6.5 节讲过，建议扩展collections.UserDict 自定义映射。Mypy 会拒绝 UserDict 或其
+衍生类的实例，因为 UserDict 不是 dict 的子类，二者是同级关系，都是 abc.MutableMapping 的子类。
+
+函数的返回值的类型提示始终应该是一个具体对象
+注解数字参数由以下几种选择：
+1.使用int，float或complex中的某个具体类型
+2.声明一种联合类型，例如Union[float, Decimal, Fraction]
+3.使用SupportsFloat等数字协议
+
+
+Iterable
+例：
+from collections.abc import Iterable
+FromTo = tuple[str, str]
+def zip_replace(text: str, changes: Iterable[FromTo]) -> str:
+      for from_, to in changes:
+            text = text.replace(from_, to)
+      return text
+
+FromTo是类型别名，changes的类型为Iterable[FromTo]，与Iterable[tuple[str, str]]一样
+“PEP 613—Explicit Type Aliases”引入了一种特殊类型，即TypeAlias，以让创建类型别名的赋值操作更显眼，也让类型检查
+更容易。从 Python 3.10 开始，创建类型别名的首选方式如下所示。
+from typing import TypeAlias 
+FromTo: TypeAlias = tuple[str, str]
+
+
+参数化泛型和TypeVar
+参数化泛型是一种泛型，写作 list[T]，其中 T 是类型变量，每次使用时会绑定具体的类型。这样可在结果的类型中使用参数的类型。
+例：
+from collections.abc import Sequence
+from random import shuffle
+from typing import TypeVar
+T = TypeVar('T')
+def sample(population: Sequence[T], size: int) -> list[T]:
+      if size < 1:
+         raise ValueError('size must be >= 1')
+      result = list(population)
+      shuffle(result)
+      return result[:size]
+
+T为推导类型，第一个类型T可以是任何类型，后面的类型T与第一个T类型一致
+
+受限的TypeVar
+TypeVar接受一些位置参数，以对类型参数施加限制
+例：
+NunberT= TypeVar('NumberT', float, Decimal, Fraction)
+
+有界的TypeVar
+bound关键字参数为可接受的类型设定一个上边界
+例：
+HashableT = TypeVar('Hashable', bound=Hashable)
+使用bound=Hashable指明，类型参数可以是Hashable或它的任何子类型
+
+预定义的类型变量AnyStr
+例：
+AnyStr = TypeVar('AnyStr', bytes, str)
+
+
+静态协议
+
 
 
 
