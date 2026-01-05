@@ -297,10 +297,21 @@ AnyStr = TypeVar('AnyStr', bytes, str)
 
 
 静态协议
+对类型提示来说，协议指的是typing.Protocol的子类
+实现协议的类不会与定义协议的类建立任何关系，不继承，也不用注册
+
+from typing import Protocol, Any
+
+class SupportsLessThan(Protocol):
+      def __lt__(self, other: Any) -> bool: ...
+
+如果类型T实现了协议P定义的所有方法且类型签名匹配，那么T就与P相容
 
 
-
-
+Callable
+Callable类型用于注解回调参数或高阶函数返回的可调用对象
+Callable可以像下面这样参数化：
+Callable[[ParamType1, ParamType2], ReturnType]
 
 
 
