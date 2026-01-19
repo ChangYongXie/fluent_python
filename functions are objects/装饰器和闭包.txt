@@ -42,18 +42,165 @@ Python编译函数主体时，判断b是局部变量，因为函数内给它赋�
 闭包
 其实，闭包就是延伸了作用域的函数
 函数是不是匿名的没有关系，关键是他能访问主体之外定义的非全局变量
+自由变量是一个术语，指未在局部作用域中绑定的变量
 
 
+nonlocal声明
+nonlocal关键字的作用是把变量标记为自由变量
 
 
+装饰器工作原理
+@clock
+def factorial(n):
+      return 1 if n < 2 else n*factorial(n-1)
+
+等价于
+
+def factorial(n):
+      return 1 if n < 2 else n*factorial(n-1)
+
+factorial = clock(factorial)
+
+标准库中的@functools.wraps(func)装饰器用于保留被装饰函数的原始信息，如函数名，文档字符串，注解等
 
 
+标准库中的装饰器
+1. @functools.cache
+@functools.cache装饰器实现了备忘，能把耗时的函数得到的结果保存起来，避免传入相同的参数时重复计算
+
+叠放装饰器
+把装饰器函数应用到下方的函数上
+@alpha
+@beta
+def my_fn():
+      ...
+
+等同于
+
+my_fn = alpha(beta(my_fn))
+也就是说，首先应用beta装饰器，然后再把返回的函数传给alpha
+
+如果要计算fibonacci(30)，使用@functools.cache，总计会调用31次。不使用总计则会调用2692537次，仅fibonacci(1)就要调用832040次
+被装饰的函数所接受的参数必须可哈希
+
+2. @functools.lru_cache
+@functools.lru_cache的主要优势是可以通过maxsize参数限制内存用量上限，maxsize参数的默认值为128
+
+装饰器的默认值
+maxsize=128
+如果传入maxsize=None，效果与@functools.cache相同
+typed=False
+决定是否把不同参数类型得到的结果分开保存。如f(1)和f(1.0)只对应一个缓存条目
+
+3. 单分派泛化函数@functools.singledispatch
+把多个函数绑在一起组成一个泛化函数
+from functools import singledispatch
+from collections import abc
+import fractions
+import decimal
+import html
+import numbers
+ 
+@singledispatch
+def htmlize(obj: object) -> str:
+    content = html.escape(repr(obj))
+    return f'<pre>{content}</pre>'
+
+@htmlize.register
+def _(text: str) -> str:
+    content = html.escape(text).replace('\n', '<br/>\n')
+    return f'<p>{content}</p>'
+ 
+@htmlize.register
+def _(seq: abc.Sequence) -> str:
+    inner = '</li>\n<li>'.join(htmlize(item) for item in seq)
+    return '<ul>\n<li>' + inner + '</li>\n</ul>'
+
+@htmlize.register
+def _(n: numbers.Integral) -> str:
+    return f'<pre>{n} (0x{n:x})</pre>'
+
+@htmlize.register
+def _(n: bool) -> str:
+    return f'<pre>{n}</pre>'
+
+@htmlize.register(fractions.Fraction)
+def _(x) -> str:
+    frac = fractions.Fraction(x)
+    return f'<pre>{frac.numerator}/{frac.denominator}</pre>'
+
+@htmlize.register(decimal.Decimal)
+@htmlize.register(float)
+def _(x) -> str:
+    frac = fractions.Fraction(x).limit_denominator()
+    return f'<pre>{x} ({frac.numerator}/{frac.denominator})</pre>'
+
+1. @singledispatch 标记的是处理 object 类型的基函数
+2. 各个专门函数使用 @«base».register 装饰
+3.  运行时传入的第一个参数的类型决定何时使用这个函数。专门函数的名称无关紧要，_ 是一个不错的选择，简单明了
+4. 为每个需要特殊处理的类型注册一个函数，把第一个参数的类型提示设为相应的类型
+5. singledispatch 支持使用 numbers 包中的抽象基类
+6. bool 是 numbers.Integral 的子类型，但是 singledispatch逻辑会寻找与指定类型最匹配的实现，与实现在代码中出现的顺序无关
+7.  如果不想或者不能为被装饰的类型添加类型提示，则可以把类型传给@«base».register 装饰器
+8. 应尽量注册处理抽象基类（例如 numbers.Integral 和abc.MutableSequence）的专门函数，而不直接处理具体实现（例如int 和 list）。这样的话，代码支持的兼容类型更广泛
 
 
+参数化装饰器
 
+装饰器工厂函数@register()
+registry = set()
+ 
+def register(active=True):
+      def decorate(func):
+            print('running register'
+                  f'(active={active})->decorate({func})')
+            if active:
+                 registry.add(func)
+            else:
+                  registry.discard(func)
 
+            return func
+      return decorate
 
+@register(active=False)
+def f1():
+      print('running f1()')
 
+@register()
+def f2():
+      print('running f2()')
+
+def f3():
+      print('running f3()')
+
+参数化clock装饰器，以特定格式返回信息
+
+import time
+
+DEFAULT_FMT = '[{elapsed:0.8f}s] {name}({args}) -> {result}'
+
+def clock(fmt=DEFAULT_FMT):
+      def decorate(func):
+            def clocked(*_args):
+                  t0 = time.perf_counter()
+                  _result = func(*_args)
+                  elapsed = time.perf_counter() - t0
+                  name = func.__name__
+                  args = ', '.join(repr(arg) for arg in _args)
+                  result = repr(_result)
+                  print(fmt.format(**locals()))
+                  return _result
+            return clocked
+      return decorate
+
+if __name__ == '__main__':
+
+     @clock()
+           def snooze(seconds):
+                 time.sleep(seconds)
+
+      for i in range(3):
+           snooze(.123)
 
 
 
