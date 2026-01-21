@@ -1,0 +1,26 @@
+经典的策略模式
+Order ------------------> Promotion
+上下文                              discount()
+                                            策略
+                         ↗                 ↑                 ↖
+
+FidelityPromo               BulkitemPromo               LargeOrderPromo
+discount()                     discount()                        discount()
+具体策略
+
+策略模式概述：定义一系列算法，把它们一一封装起来，并且使它们可以相互替换。本模式使得算法可以独立于使用它的客户而变化
+上下文：根据数据给出“答案”
+策略：定义“子类”的接口
+具体策略：与策略相容的子类实现
+
+*示例 《fluent python》p262 - p269
+
+globals()返回一个字典，字典的键是全局变量的名称，字典的值是对应全局变量的值
+
+str.endswith()，检查字符串是否以指定的后缀结尾
+inspect.getmembers(obj, inspect.isfunction)，用于获取对象的属性，第二个参数是可选的判断条件（一个布尔值函数）
+
+
+命令模式
+...
+
